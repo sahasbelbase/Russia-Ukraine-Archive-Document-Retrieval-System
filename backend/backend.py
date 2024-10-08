@@ -49,7 +49,7 @@ def compute_idf(documents):
             idf[token] = idf.get(token, 0) + 1
     # Calculate IDF
     for token in idf:
-        idf[token] = np.log(total_documents / (idf[token] + 1))  # Adding 1 to avoid division by zero
+        idf[token] = np.log(total_documents / (idf[token] + 1))  
     return idf
 
 def generate_tfidf_vector(query_tokens, processed_docs, word_vocab):
@@ -78,30 +78,20 @@ async def search_document(query: QueryModel):
     if not document_store:
         raise HTTPException(status_code=404, detail="No documents processed. Please check the backend configuration.")
 
-    # Process the query text
     query_tokens = process_document_text(query.query_text)
     
-    # Prepare the vocabulary from all documents
     word_vocab = sorted(set(word for doc in processed_docs for word in doc))
     
-    # Generate TF-IDF vector for the query
     query_vector = generate_tfidf_vector(query_tokens, processed_docs, word_vocab)
 
-    # Calculate similarity of the query with each document
     similarity_scores = {
         filename: cosine_similarity(query_vector, generate_tfidf_vector(processed_docs[i], processed_docs, word_vocab))
         for i, filename in enumerate(document_store.keys())
     }
-
-    # Sort documents by similarity score and assign ranking
     sorted_documents = sorted(similarity_scores.items(), key=lambda item: item[1], reverse=True)
-    
-    # Prepare response with ranking and similarity scores
     response_docs = [
         {"rank": index + 1, "document_name": doc[0], "similarity_score": doc[1]} 
         for index, doc in enumerate(sorted_documents)
     ]
 
     return {"documents": response_docs}
-
-# To run the application, use the command: uvicorn <your_file_name>:app --reload
